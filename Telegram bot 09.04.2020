@@ -1,0 +1,258 @@
+import requests
+import telegram
+import re
+import pyowm
+import telebot
+import aiogram
+from telebot import types
+import sys
+import os
+import time
+import logging
+mei = 0
+opr = 0
+lg = 0
+lgb = 0
+pricee = types.LabeledPrice(label = 'test',amount = 10000)
+pop = 0
+wathere = 0
+idd = 0
+payloade = 'some-random-payload'
+markup = 0
+e = 0
+but_1 = 0
+but_2 = 0
+but_3 = 0
+but_4 = 0
+resume_read  = 0
+resume = ''
+owm = pyowm.OWM('f4cbfbfec6461a979793cf3c9ee3262b', language = 'ru')
+BASE_URL = 'https://api.telegram.org/bot882405535:AAEar4K8X01-dkNm8_cUmzOhmy7MRslS5s8/'
+TOKEN = '882405535:AAHvf2ynhZA-a1OpTteZH39xQUDAJLRUMmM'
+bot = telebot.TeleBot(TOKEN)
+@bot.message_handler(commands=['ask'])
+def opros(message):
+    global idd
+    global mei
+    mei = message.message_id
+    mei = mei + 1
+    idd = message.chat.id
+    key = types.InlineKeyboardMarkup()
+    opros1 = types.InlineKeyboardButton(text="Да", callback_data="Data12")
+    opros2 = types.InlineKeyboardButton(text="Нет", callback_data="Data22")
+    key.add(opros1,opros2)
+    bot.reply_to(message,'Вы член LGBTQ+ сообщества?',reply_markup = key)
+@bot.message_handler(commands=['Я Колян'])
+def Kolya(message):
+    global idd
+    idd = message.chat.id
+    print(idd) 
+@bot.message_handler(commands=['tts'])
+def purchase(message):
+    global idd
+    global pricee
+    global payloade
+    idd = message.chat.id
+    bot.send_invoice(
+    idd,
+    title='Почему бы и нет',
+    description='Не будь жлобом',
+    provider_token='381764678:TEST:11540',
+    start_parameter = 'ran',
+    currency = 'RUB',
+    prices = [pricee],
+    invoice_payload = payloade
+    )
+@bot.message_handler(commands=['start'])
+def popitka(message):
+    print(message)
+    global idd
+    global e
+    idd = message.chat.id
+    markup = types.ReplyKeyboardMarkup(one_time_keyboard = True)
+    markup.add('Заявить','Погода','Пригласить друга')
+    msg = bot.reply_to(message,'Здравствуй, пользователь',reply_markup = markup)
+    e = 1
+@bot.message_handler(commands=['hi'])
+def popitka(message):
+    global idd
+    global e
+    idd = message.chat.id
+    bot.reply_to(message,'Hi')
+    e = 1
+@bot.message_handler(commands=['help'])
+def popitka(message):
+    global idd
+    global e
+    idd = message.chat.id
+    bot.reply_to(message,'''/balance - Проверить баланс
+/hi - Сказать Hi
+/start - Начать диалог''')
+    e = 1
+@bot.message_handler(func=lambda c:True)
+def task_one(message):
+    global resume_read
+    global resume
+    global idd
+    global e
+    idd = message.chat.id
+    print(message)
+    if idd == 1025231342:
+        bot.send_message(idd,'Посылаю тебя нахер в свободное время')
+    global wathere
+    message.text = message.text.strip()
+    print(message.text)
+    if resume_read == 1:
+        print('ok')
+        resume +=  message.text
+        bot.send_message(message.chat.id,resume)
+        e = 1
+    if resume_read == 2:
+        print('ok')
+        resume +=  message.text
+        bot.send_message(message.chat.id,resume)
+        e = 1
+    if resume_read == 3:
+        print('ok')
+        resume +=  message.text
+        bot.send_message(message.chat.id,resume)
+        e = 1
+    if wathere == 1:
+        e = 1
+        wathere = 0
+        place = message.text
+        observation = owm.weather_at_place(place)
+        w = observation.get_weather()
+        wether = "В "+place
+        wether += ' сейчас '+str(w.get_detailed_status())
+        markup = types.ReplyKeyboardMarkup(one_time_keyboard = True)
+        markup.add('Заявить','Погода','Пригласить друга')
+        bot.send_message(message.chat.id,wether,reply_markup = markup)
+        temp = w.get_temperature('celsius')['temp']
+        a = 'Примерно ' + str(temp) + ' градусов'
+        bot.send_message(message.chat.id,a)
+        pop = 1
+    if message.text == 'Заявить':
+        global but_1
+        global but_2
+        global but_3
+        global but_4
+        key = types.InlineKeyboardMarkup()
+        but_1 = types.InlineKeyboardButton(text="Дальше", callback_data="Data1")
+        but_2 = types.InlineKeyboardButton(text="Дальше", callback_data="Data2")
+        but_3 = types.InlineKeyboardButton(text="Дальше", callback_data="Data_3")
+        but_4 = types.InlineKeyboardButton(text="Number4", callback_data="Data4")
+        key.add(but_1)
+        bot.reply_to(message,'Пожалуйста опишите ваш случай.',reply_markup = key)
+        resume_read = 1
+        resume += 'Описание случая: '
+        e = 1
+    if message.text == 'Погода':
+        print('da')
+        markupe = types.ReplyKeyboardMarkup(one_time_keyboard = True)
+        bot.send_message(message.chat.id,'Какой русский населённый пункт? В именительном падеже',reply_markup = markupe)
+        wathere = 1
+    if message.text == 'Пригласить друга':
+        silka = '''@WarHBot
+'''
+        bot.send_message(message.chat.id,silka)
+    else :
+        if e != 1:
+            markupe = types.ReplyKeyboardMarkup(one_time_keyboard = True)
+            markupe.add('Заявить','Погода','Пригласить друга')
+            bot.send_message(idd,'Простите не понял',reply_markup = markupe)
+print(e)
+@bot.callback_query_handler(func=lambda c:True)
+def inlin(c):
+    global e
+    global lg
+    global lgb
+    global resume_read
+    global resume
+    global idd
+    global mei
+    global opr
+    global but_1
+    global but_2
+    global but_3
+    global but_4
+    e = 0
+    print(c.data)
+    print(e)
+    if c.data == 'Data1':
+        print('not ok')
+        key = types.InlineKeyboardMarkup()
+        but_2 = types.InlineKeyboardButton(text="Дальше", callback_data="Data2")
+        key.add(but_2)
+        bot.send_message(idd,'Пожалуйста отправте номер автомобиля.',reply_markup = key)
+        resume += ' Номер автомобиля: '
+        resume_read = 2
+        e = 1
+    if e != 1:
+        if c.data == 'Data2':
+            key = types.InlineKeyboardMarkup()
+            but_3 = types.InlineKeyboardButton(text="Дальше", callback_data="Data_3")
+            key.add(but_3)
+            bot.send_message(idd,'Пожалуйста напишите ваш номер телефона.',reply_markup = key)
+            resume += ' Номер телефона: '
+            resume_read = 3
+            e = 1
+        if e != 1:
+            if c.data == 'Data12':
+                    lg = lg + 1
+                    e=1
+                    o = 1
+            if e != 1:
+                if c.data == 'Data22':
+                     lgb = lgb + 1
+                     e=1
+                     o = 1
+                if c.data == 'res':
+                    o = 1
+                    e = 1
+            if o==1:
+                    p = lg + lgb
+                    ai = 100/p*lg
+                    ai = int(ai)
+                    ai = str(ai)
+                    print(ai)
+                    bi = 100/p*lgb
+                    bi = int(bi)
+                    bi = str(bi)
+                    c = 'Да'+ai+'%'
+                    d = 'Нет'+bi+'%'
+                    c = str(c)
+                    d = str(d)
+                    tey = types.InlineKeyboardMarkup()
+                    itog1 = types.InlineKeyboardButton(text=c, callback_data = 'uik')
+                    itog2 = types.InlineKeyboardButton(text=d, callback_data = 'uik')
+                    itog3 = types.InlineKeyboardButton(text='Обновить', callback_data = 'res')
+                    tey.add(itog1,itog2,itog3)
+                    e = 1
+                    bot.edit_message_reply_markup(chat_id = idd,message_id = mei,reply_markup = tey)
+@bot.message_handler(content_types = ['photo'])
+def foto (message):
+    global idd
+    idd = message.chat.id
+    print('Got photo')
+    print(message.photo[1].file_id)
+    photo = message.photo[1].file_id
+    print(message.chat.id)
+    bot.send_photo(message.chat.id,photo)
+ert = '''while True:
+    try:
+        time.sleep(2)
+        bot.polling(none_stop = True,interval = 2)
+    except Exception as e:
+        if pop!= 1:
+            wathere = 0
+            print('Restart')
+            markupe = types.ReplyKeyboardMarkup(one_time_keyboard = True)
+            markupe.add('Заявить','Погода','Пригласить друга')
+            bot.send_message(idd,'Что-то пошло не так',reply_markup = markupe)
+            time.sleep(10)
+            python = sys.executable
+            os.execl(python,python,*sys.argv)
+        else:
+            pop = 0'''
+bot.polling(none_stop = True,interval = 2)
