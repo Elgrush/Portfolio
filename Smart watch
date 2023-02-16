@@ -1,0 +1,296 @@
+//Библиотеки для просмотра времени
+#include <DS3231.h>
+#include "time.h"
+//Библитека для I2C интерфейса
+#include <Wire.h>
+//Библитека для WIFI
+#include <WiFi.h>
+//Библитека для температуры и влажности
+#include <DHT.h>
+//Библитеки для отображения времени
+#include <Adafruit_NeoPixel.h>
+//Библиотеки для давления
+#include <Adafruit_BMP280.h>
+#include <Adafruit_Sensor.h>
+//Объявление пинов
+#define PIN 15
+#define NUMPIXELS 86
+Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
+#define DELAYVAL 500
+#define pwmPin 5
+#define LedPin 13
+#define DHTPIN 14
+#define DHTTYPE DHT22
+#define MQ2pin (23)
+//Объявление переменных
+Adafruit_BMP280 bmp;
+int hou, minn;
+long t_z = 3;
+int numbers[10][21] = {
+  {1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1},//0
+  {0, 0, 0, 0 , 0 , 0, 1 , 1, 1, 0, 0, 0, 0 , 0, 0, 0, 0, 0, 1, 1, 1},//1
+  {0, 0, 0, 1 , 1 , 1, 1 , 1, 1, 1, 1, 1, 1 , 1, 1, 1, 1, 1, 0, 0, 0},//2
+  {0, 0, 0, 1 , 1 , 1, 1 , 1, 1, 1, 1, 1, 0 , 0, 0, 1, 1, 1, 1, 1, 1},//3
+  {1, 1, 1, 0 , 0 , 0, 1 , 1, 1, 1, 1, 1, 0 , 0, 0, 0, 0, 0, 1, 1, 1},//4
+  {1, 1, 1, 1 , 1 , 1, 0 , 0, 0, 1, 1, 1, 0 , 0, 0, 1, 1, 1, 1, 1, 1},//5
+  {1, 1, 1, 1 , 1 , 1, 0 , 0, 0, 1, 1, 1, 1 , 1, 1, 1, 1, 1, 1, 1, 1},//6
+  {0, 0, 0, 1 , 1 , 1, 1, 1, 1, 0, 0, 0, 0 , 0, 0, 0, 0, 0, 1, 1, 1},//7
+  {1, 1, 1, 1 , 1 , 1, 1, 1, 1, 1, 1, 1, 1 , 1, 1, 1, 1, 1, 1, 1, 1},//8
+  {1, 1, 1, 1 , 1 , 1, 1 , 1, 1, 1, 1, 1, 0 , 0, 0, 1, 1, 1, 1, 1, 1}//9
+};
+int prev_min, prev_hou;
+unsigned char red = 40, green = 135, blue = 40;
+int co2, tem, hum, pre;
+String mes, te, hu, co, pr;
+const char* ntpServer = "pool.ntp.org";
+const long  gmtOffset_sec = 3600;
+const int   daylightOffset_sec = 3600;
+int prevVal = LOW;
+long th, tl, l, ppm;
+DS3231 Clock;
+bool Century = false;
+bool h12;
+bool PM;
+byte ADay, AHour, AMinute, ASecond, ABits;
+bool ADy, A12h, Apm;
+DHT dht(DHTPIN, DHTTYPE);
+int t, h, p, c;
+//Выводим время
+void syn_t() {
+  //Получаеем часы и минуты
+  hou = Clock.getHour(h12, PM);
+  minn = Clock.getMinute();
+  Serial.println(hou);
+  Serial.println(minn);
+  //Проверяем не изменилось ли время с прошлого раза
+  if (minn != prev_min) {
+    prev_min = minn;//Перерписываем прошлое время
+    for (int j = 0; j < 21; j++) {
+      //Выводим единицы минут
+      if (numbers[minn % 10][j] == 1) {
+        pixels.setPixelColor(j + 65, pixels.Color(red, green, blue));
+        pixels.show();
+      }
+      if (numbers[minn % 10][j] == 0) {
+        pixels.setPixelColor(j + 65, pixels.Color(0, 0, 0));
+        pixels.show();
+      }
+    }
+    //Выводим десятки минут
+    for (int j = 0; j < 21; j++) {
+      if (numbers[minn / 10][j] == 1) {
+        pixels.setPixelColor(j + 44, pixels.Color(red, green, blue));
+        pixels.show();
+      } if (numbers[minn / 10][j] == 0) {
+        pixels.setPixelColor(j + 44, pixels.Color(0, 0, 0));
+        pixels.show();
+      }
+    }
+    prev_hou = hou;//Перерписываем прошлое время
+    //Выводим единицы часов
+    for (int j = 0; j < 21; j++) {
+      if (numbers[hou % 10][j] == 1) {
+        pixels.setPixelColor(j + 21, pixels.Color(red, green, blue));
+        pixels.show();
+      } if (numbers[hou % 10][j] == 0) {
+        pixels.setPixelColor(j + 21, pixels.Color(0, 0, 0));
+        pixels.show();
+      }
+    }
+    //Выводим десятки часов
+    for (int j = 0; j < 21; j++) {
+      if (numbers[hou / 10][j] == 1) {
+        pixels.setPixelColor(j, pixels.Color(red, green, blue));
+        pixels.show();
+      } if (numbers[hou / 10][j] == 0) {
+        pixels.setPixelColor(j, pixels.Color(0, 0, 0));
+        pixels.show();
+      }
+    }
+  }
+}
+//Обновляем время
+void upd_t() {
+  //Проверяем подключение к WIFI
+  if (WiFi.status() == WL_CONNECTED) {
+    struct tm timeinfo;
+    //Пытаемся получить время с сервера
+    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+    if (!getLocalTime(&timeinfo)) {
+      //Если не получается получить время заканчиваем функцию
+      Serial.println("Failed to obtain time");
+    }
+    else {
+      //Если получилось обновляем время
+      Clock.setYear(timeinfo.tm_year % 100);
+      Clock.setMonth(timeinfo.tm_mon + 1);
+      Clock.setDate(timeinfo.tm_mday);
+      Clock.setDoW(timeinfo.tm_wday);
+      Clock.setHour(timeinfo.tm_hour + t_z - 2);
+      Clock.setMinute(timeinfo.tm_min);
+      Clock.setSecond(timeinfo.tm_sec);
+    }
+  }
+}
+//Проверяем wifi
+void est_con() {
+  int rep = 0;
+  while (WiFi.status() != WL_CONNECTED and rep < 11) {
+    delay(500);
+    Serial.print(".");
+    rep = rep + 1;
+    Serial.println(WiFi.status());
+  }
+}
+//Читаем температуру
+int get_tem() {
+  tem = dht.readTemperature();
+  return (tem);
+}
+//Читаем влажность
+int get_hum() {
+  hum = dht.readHumidity();
+  return (hum);
+}
+//Читаем давление
+int get_pre() {
+  pre = bmp.readPressure() / 133.3;
+  return (pre);
+}
+void setup() {
+  //Стартуем I2C
+  Wire.begin();
+  //Стартуем последовательный интерфейс
+  Serial.begin(115200);
+  //Стартуем датчик температуры и влажности
+  dht.begin();
+  //Стартуем датчик давления
+  bmp.begin(0x76);
+  //Выставляем пины
+  pinMode(pwmPin, INPUT);
+  pinMode(LedPin, OUTPUT);
+  //Стартуем светодиодную ленту
+  pixels.begin();
+  pixels.clear();
+  pixels.show();
+  pixels.setBrightness(70);
+  //Подключаем wifi
+  WiFi.begin("DURKA", "9852900510");
+  int rep = 0;
+  while (WiFi.status() != WL_CONNECTED and rep < 11) {
+    delay(500);
+    Serial.print(".");
+    rep = rep + 1;
+  }
+  //Обновляем время из интернета
+  upd_t();
+  //Перерписываем прошлое время
+  for (int j = 0; j < 21; j++) {
+    //Выводим единицы минут
+    if (numbers[minn % 10][j] == 1) {
+      pixels.setPixelColor(j + 65, pixels.Color(red, green, blue));
+      pixels.show();
+    }
+    if (numbers[minn % 10][j] == 0) {
+      pixels.setPixelColor(j + 65, pixels.Color(0, 0, 0));
+      pixels.show();
+    }
+  }
+  //Выводим десятки минут
+  for (int j = 0; j < 21; j++) {
+    if (numbers[minn / 10][j] == 1) {
+      pixels.setPixelColor(j + 44, pixels.Color(red, green, blue));
+      pixels.show();
+    } if (numbers[minn / 10][j] == 0) {
+      pixels.setPixelColor(j + 44, pixels.Color(0, 0, 0));
+      pixels.show();
+    }
+  }
+  prev_hou = hou;//Перерписываем прошлое время
+  //Выводим единицы часов
+  for (int j = 0; j < 21; j++) {
+    if (numbers[hou % 10][j] == 1) {
+      pixels.setPixelColor(j + 21, pixels.Color(red, green, blue));
+      pixels.show();
+    } if (numbers[hou % 10][j] == 0) {
+      pixels.setPixelColor(j + 21, pixels.Color(0, 0, 0));
+      pixels.show();
+    }
+  }
+  //Выводим десятки часов
+  for (int j = 0; j < 21; j++) {
+    if (numbers[hou / 10][j] == 1) {
+      pixels.setPixelColor(j, pixels.Color(red, green, blue));
+      pixels.show();
+    } if (numbers[hou / 10][j] == 0) {
+      pixels.setPixelColor(j, pixels.Color(0, 0, 0));
+      pixels.show();
+    }
+  }
+}
+void loop() {
+  //Раз в день синхронизруем время с сервером
+  if (millis() % 86400000 < 4) {
+    //Подключаемся к WIFI
+    est_con();
+    upd_t();
+  }
+  //Синхронизируем Углекислый газ
+  long tt = millis();
+  int myVal = digitalRead(pwmPin);
+  if (myVal == HIGH) {
+    digitalWrite(LedPin, HIGH);
+    if (myVal != prevVal) {
+      h = tt;
+      tl = h - l;
+      prevVal = myVal;
+    }
+  }  else {
+    digitalWrite(LedPin, LOW);
+    if (myVal != prevVal) {
+      l = tt;
+      th = l - h;
+      prevVal = myVal;
+      ppm = 5000 * (th - 2) / (th + tl - 4);
+    }
+  }
+  //Каждые 30 секунд отправляем данные на сайт
+  if (millis() % 30000 < 4) {
+    //Подключаемся к WIFI
+    est_con();
+    //Собираем данные датчиков
+    String te = String(get_tem());
+    String hu = String(get_hum());
+    String pr = String(get_pre());
+    String co = String(ppm);
+    //Генерируем ссылку
+    mes = String("http://w.grishinpa.ru/data.php?r=4859320&t=" + te + "&co=" + co + "&b=" + pr + "&hum=" + hu);
+    Serial.println(mes);
+    //Переходим по ссылке, предавая данные
+    http.begin(mes);
+    int httpCode = http.GET();
+  }
+  //Меняем цвет дисплея
+  if (ppm <= 800) {
+    red = 80;
+    if (80 + (1000 - ppm) / 2 < 255) {
+      green = 80 + (1000 - ppm) / 2;
+    }
+    else {
+      green = 255;
+    }
+  }
+  if (ppm >= 800) {
+    green = 80;
+    if (80 + (ppm - 800) / 2 < 255) {
+      red = 80 + (ppm - 800) / 2;
+    }
+    else {
+      red = 255;
+    }
+  }
+  //Каждую секунду проверяем не прошла ли минута, и если она прошла обновляем время
+  if (millis() % 1000 < 4) {
+    syn_t();
+  }
+}
